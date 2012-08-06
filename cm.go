@@ -22,7 +22,7 @@ by a command and then arguments related to that command:
 	show            - show what files, if any, are added under cm
 	diff [file]     - show diff between files under cm
 	sync [all]      - sync cm overlay to cwd, or / if "all"
-	pkg	[subcmd...] - package management subcommand
+	pkg [subcmd...] - package management subcommand
 
 cm can also keep a log of installed packages and install missing packages.  This
 is done by using the command "pkg" (or "package") and using one of the following
