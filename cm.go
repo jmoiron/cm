@@ -13,7 +13,8 @@ cm is a (very) simple configuration manager designed to help keep and maintain
 system configs in an alternate overlay directory, which could then be separately
 backed up, distributed, or under version control.  The optional file arguments
 given to cm can generally also be directories, in which case cm always behaves
-recursively. Usage follows typical version control interface, with 'cm' followed
+recursively.  If no <file> arguments are provided, the current working directory
+is used.  Usage follows typical version control interface, with 'cm' followed
 by a command and then arguments related to that command:
 
 	add <file>      - add a file to management directory
@@ -148,8 +149,13 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: pkg command requires subcommand.\n")
 			return
 		}
-		args := args[1:]
+		// args := args[1:]
 		switch subcmd {
+		case "add":
+		case "rm", "remove":
+		case "sync", "update":
+		case "diff":
+		case "show":
 		default:
 			fmt.Fprintf(os.Stderr, "Error: pkg subcommand %s not recognized\n", cmd)
 			fmt.Fprintf(os.Stderr, COMMAND_HELP)
