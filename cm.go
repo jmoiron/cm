@@ -19,8 +19,8 @@ by a command and then arguments related to that command:
 
 	add <file>      - add a file to management directory
 	rm <file>       - remove file from management directory
-	show            - show what files, if any, are added under cm
-	list            - list all files under cm
+	show [path]     - show what files in path are under cm (default: CWD)
+	list            - list all files under cm (show "/")
 	diff [file]     - show diff between files under cm
 	sync [all]      - sync cm overlay to cwd, or / if "all"
 	pkg [subcmd...] - package management subcommand
@@ -41,7 +41,7 @@ Valid commands:
 
 	add <file>      - add a file to management directory
 	rm <file>       - remove file from management directory
-	show            - show what files, if any, are added under cm
+	show [path]     - show what files in path are under cm (default: CWD)
 	diff [file]     - show diff between files under cm
 	sync [all]      - sync cm overlay to cwd, or / if "all"
 	pkg add <name>  - add package to management list
