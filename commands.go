@@ -82,6 +82,7 @@ func Rm(path string) error {
 
 	dst := C(abs)
 	err = os.RemoveAll(dst)
+	println(abs, dst)
 	if err == nil {
 		fmt.Printf("Removed %s\n", abs)
 	} else {

@@ -15,6 +15,7 @@ by a command and then arguments related to that command:
 	add <file>      - add a file to management directory
 	rm <file>       - remove file from management directory
 	show            - show what files, if any, are added under cm
+	list            - list all files under cm
 	diff [file]     - show diff between files under cm
 	sync [all]      - sync cm overlay to cwd, or / if "all"
 	pkg [subcmd...] - package management subcommand
@@ -28,7 +29,4 @@ subcommands:
 	pkg sync        - install packages from list
 	pkg diff [name] - show diff between list and installed, matching optional name
 	pkg show [name] - show packages and install status, matching optional name
-
-cm is written in golang, and if you have a build environment setup, you can install
-cm w/ `go get github.com/jmoiron/cm`
 

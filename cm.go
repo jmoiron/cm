@@ -20,6 +20,7 @@ by a command and then arguments related to that command:
 	add <file>      - add a file to management directory
 	rm <file>       - remove file from management directory
 	show            - show what files, if any, are added under cm
+	list            - list all files under cm
 	diff [file]     - show diff between files under cm
 	sync [all]      - sync cm overlay to cwd, or / if "all"
 	pkg [subcmd...] - package management subcommand
@@ -128,6 +129,11 @@ func main() {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error (Show): %s\n", err.Error())
 			}
+		}
+	case "list":
+		err := Show("/")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error (List): %s\n", err.Error())
 		}
 	case "sync", "update":
 		for _, arg := range args {
