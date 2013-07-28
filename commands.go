@@ -1,13 +1,71 @@
 package main
 
 import (
-	_ "errors"
+	//"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
+
+var (
+	DIFF     = ""
+	CM_DIFF  = ""
+	DIFFSTAT = ""
+)
+
+// Diff two files.  If forceNormal is True, custom diffs configured in the
+// the environ are ignored for the regular `diff` command.
+func diff(src, dest string, forceNormal ...bool) (*exec.Cmd, error) {
+	var err error
+
+	if len(DIFF) == 0 {
+		CM_DIFF = os.Getenv("CM_DIFF")
+		DIFF, _ = exec.LookPath("diff")
+		if len(CM_DIFF) == 0 {
+			CM_DIFF, err = exec.LookPath("colordiff")
+			if err != nil {
+				CM_DIFF = DIFF
+			}
+		}
+	}
+
+	if len(CM_DIFF) == 0 {
+		return nil, errors.New("Could not find suitable diff executable in your PATH.")
+	}
+
+	if len(forceNormal) > 0 && forceNormal[0] {
+		return exec.Command(DIFF, "-u", src, dest), nil
+	}
+	return exec.Command(CM_DIFF, "-u", src, dest), nil
+}
+
+// Runs diffstat on some diff output.  Returns diffstat command.
+func diffstat(output string) (*exec.Cmd, error) {
+	var err error
+	var cmd *exec.Cmd
+
+	if len(DIFFSTAT) == 0 {
+		DIFFSTAT, _ = exec.LookPath("diffstat")
+		if len(DIFFSTAT) == 0 {
+			return nil, errors.New("Could not find suitable diffstat executable in your PATH.")
+		}
+	}
+
+	cmd = exec.Command(DIFFSTAT, "-C")
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Stdin = strings.NewReader(output)
+	if err != nil {
+		return nil, err
+	}
+	return cmd, nil
+}
 
 // turn a path into a list of files.  if the path denotes a file, the list
 // contains only that file.  if it contains a directory, a list of that
@@ -105,9 +163,9 @@ func Rm(path string) error {
 	return nil
 }
 
-// `show` command, handling one path at a time, shows what files exist under
+// `list` command, handling one path at a time, shows what files exist under
 // the overlay's version of the path
-func Show(path string) error {
+func List(path string) error {
 	var err error
 	var abs, dest string
 
@@ -218,7 +276,7 @@ func Push(path string) error {
 func Diff(path string) error {
 	var cmd *exec.Cmd
 	var err error
-	var abs, dest, src, diff string
+	var abs, dest, src string
 
 	abs, err = filepath.Abs(path)
 	if err != nil {
@@ -228,18 +286,6 @@ func Diff(path string) error {
 	dest, err = StripRoot(abs)
 	if err != nil {
 		return err
-	}
-
-	diff = os.Getenv("CM_DIFF")
-	if len(diff) == 0 {
-		// user colordiff if available, else diff
-		diff, err = exec.LookPath("colordiff")
-		if err != nil {
-			diff, err = exec.LookPath("diff")
-			if err != nil {
-				return fmt.Errorf("Could not find suitable diff executable in your PATH.")
-			}
-		}
 	}
 
 	src = C(dest)
@@ -254,11 +300,63 @@ func Diff(path string) error {
 
 	for _, cfg := range cfgs {
 		if !QuickDiff(cfg, X(cfg)) {
-			cmd = exec.Command(diff, "-u", cfg, X(cfg))
+			cmd, err = diff(cfg, X(cfg))
+			if err != nil {
+				return err
+			}
 			output, _ := cmd.Output()
 			fmt.Print(string(output))
 		}
 	}
+
+	return nil
+}
+
+// Show a diffstat style status for the path
+func Status(path string) error {
+	var err error
+	var abs, dest, src string
+	var cmd *exec.Cmd
+	var diffout, output []byte
+
+	abs, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	dest, err = StripRoot(abs)
+	if err != nil {
+		return err
+	}
+
+	src = C(dest)
+	cfgs, err := pathToFiles(src)
+
+	if err != nil && os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "Requested file not found: %s: %s\n", src, err.Error())
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not diff files from %s: %s\n", src, err.Error())
+		return err
+	}
+
+	diffout = make([]byte, 0, 4096)
+	for _, cfg := range cfgs {
+		if !QuickDiff(cfg, X(cfg)) {
+			cmd, err = diff(cfg, X(cfg), true)
+			if err != nil {
+				return err
+			}
+			output, _ = cmd.Output()
+			diffout = append(diffout, output...)
+		}
+	}
+
+	cmd, err = diffstat(string(diffout))
+	if err != nil {
+		return err
+	}
+	out, _ := cmd.Output()
+	fmt.Printf(string(out))
 
 	return nil
 }

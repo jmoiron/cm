@@ -132,15 +132,17 @@ func main() {
 		}
 	case "status", "st", "show":
 		for _, arg := range args {
-			err := Show(arg)
+			err := Status(arg)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error (Show): %s\n", err.Error())
+				fmt.Fprintf(os.Stderr, "Error (Status): %s\n", err.Error())
 			}
 		}
 	case "list", "ls":
-		err := Show(CONFIG_ROOT)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error (List): %s\n", err.Error())
+		for _, arg := range args {
+			err := List(arg)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error (List): %s\n", err.Error())
+			}
 		}
 	case "pull", "update", "sync":
 		for _, arg := range args {

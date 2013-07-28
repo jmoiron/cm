@@ -1,4 +1,4 @@
-Usage: ./cm [options]:
+Usage: cm [options]:
 
     --help, -h: show help
      --version: show version
@@ -12,21 +12,18 @@ recursively.  If no <file> arguments are provided, the current working directory
 is used.  Usage follows typical version control interface, with 'cm' followed
 by a command and then arguments related to that command:
 
-	add <file>      - add a file to management directory
+	add <file>      - copy file to management directory
 	rm <file>       - remove file from management directory
-	show [path]     - show what files in path are under cm (default: CWD)
-	list            - list all files under cm (show "/")
-	diff [file]     - show diff between files under cm
-	sync [all]      - sync cm overlay to cwd, or / if "all"
-	pkg [subcmd...] - package management subcommand
+	status [path]   - show status of files in path are under cm
+	ls [path]       - list all files in path that are under cm
+	diff [file]     - show diff between files and management directory
+	pull [all]      - pull cm overlay files to cwd, or / if "all"
+	push [all]      - push new copies of files in cwd to cm overlay
 
-cm can also keep a log of installed packages and install missing packages.  This
-is done by using the command "pkg" (or "package") and using one of the following
-subcommands:
+ENVIRONMENT VARIABLES:
 
-	pkg add <name>  - add package to management list
-	pkg rm <name>   - remove package from management list
-	pkg sync        - install packages from list
-	pkg diff [name] - show diff between list and installed, matching optional name
-	pkg show [name] - show packages and install status, matching optional name
+    CM_CONFIG_PATH  - root config path (default: /opt/cm)
+	CM_UNSAFE_SYNC  - if set, do not create .cmbak~ files on pull
+	CM_SYNC_SYMLINK - if set, create symlinks to cm overlay on pull 
+	CM_DIFF         - diff path, default tries 'colordiff', then 'diff' on PATH
 

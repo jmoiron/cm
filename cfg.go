@@ -71,6 +71,9 @@ func Copy(dst, src string) error {
 	return err
 }
 
+// Quick diff.  If the modtime and the size is the same, we assume that the
+// files are the same.  Otherwise, we assume that they are different or at
+// least require further checking.
 func QuickDiff(path1, path2 string) bool {
 	fi1, err1 := os.Stat(path1)
 	fi2, err2 := os.Stat(path2)
