@@ -11,9 +11,12 @@ import (
 	"strings"
 )
 
-const (
+var (
+	CONFIG_ROOT      = "/"
 	CONFIG_PATH      = "/opt/cm"
-	CONFIG_PATH_MODE = 0755
+	UNSAFE_SYNC      = false
+	SYNC_SYMLINK     = false
+	CONFIG_PATH_MODE = os.FileMode(0755)
 )
 
 // return the overlay version of a path
@@ -22,12 +25,22 @@ func C(path string) string { return filepath.Join(CONFIG_PATH, path) }
 // return the non-overlay version of a path
 func X(path string) string {
 	if strings.HasPrefix(path, CONFIG_PATH) {
-		return path[len(CONFIG_PATH):]
+		return CONFIG_ROOT + path[len(CONFIG_PATH):]
 	}
 	return path
 }
 
+// Strip the root from path.  If root does not exist, return an error
+func StripRoot(path string) (string, error) {
+	if !strings.HasPrefix(path, CONFIG_ROOT) {
+		return "", fmt.Errorf("Path %s not in CONFIG_ROOT %s", path, CONFIG_ROOT)
+	}
+	return path[len(CONFIG_ROOT):], nil
+
+}
+
 // copy the file `dst` to the file `src`, creating any direcsrcries necessary
+// try to preserve atime/mtime
 func Copy(dst, src string) error {
 	if !isFile(src) {
 		return fmt.Errorf("Source path %s must be a file.", src)
@@ -49,7 +62,28 @@ func Copy(dst, src string) error {
 	}
 	defer d.Close()
 	_, err = io.Copy(d, s)
+
+	if err != nil {
+		return err
+	}
+	// copy modification time;  use the mtime as an atime
+	err = os.Chtimes(dst, ss.ModTime(), ss.ModTime())
 	return err
+}
+
+func QuickDiff(path1, path2 string) bool {
+	fi1, err1 := os.Stat(path1)
+	fi2, err2 := os.Stat(path2)
+	if err1 != err2 {
+		return false
+	}
+	if fi1.Size() != fi2.Size() {
+		return false
+	}
+	if fi1.ModTime() != fi2.ModTime() {
+		return false
+	}
+	return true
 }
 
 // return true if path exists and is a file, false otherwise
@@ -93,4 +127,26 @@ func configPathInit() error {
 		return err
 	}
 	return errors.New("Unknown error setting up config path.")
+}
+
+func init() {
+	conf := os.Getenv("CM_CONFIG_PATH")
+	if len(conf) > 0 {
+		CONFIG_PATH = conf
+	}
+
+	conf = os.Getenv("CM_UNSAFE_SYNC")
+	if len(conf) > 0 && conf != "0" {
+		UNSAFE_SYNC = true
+	}
+
+	conf = os.Getenv("CM_SYNC_SYMLINK")
+	if len(conf) > 0 && conf != "0" {
+		SYNC_SYMLINK = true
+	}
+
+	conf = os.Getenv("CM_CONFIG_ROOT")
+	if len(conf) > 0 {
+		CONFIG_ROOT = conf
+	}
 }

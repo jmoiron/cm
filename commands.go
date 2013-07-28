@@ -47,7 +47,7 @@ func pathToFiles(path string) ([]string, error) {
 // implement the Add command, handling one path at a time.  if the path is
 // a directory, then copy all of the files over.
 func Add(path string) error {
-	var cfg string
+	var cfg, dest string
 	files := []string{}
 	abs, err := filepath.Abs(path)
 	if err != nil {
@@ -60,29 +60,42 @@ func Add(path string) error {
 	}
 
 	for _, file := range files {
-		cfg = C(file)
-		err = Copy(cfg, file)
-		if err == nil {
-			fmt.Printf("%s -> %s\n", file, cfg)
-		} else {
-			fmt.Fprintf(os.Stderr, "%s could not be added: %s\n", file, err.Error())
+		// strip out the CONFIG ROOT for the file;  if it isn't inside the CONFIG_ROOT,
+		// then it isn't valid.
+		dest, err = StripRoot(file)
+		if err != nil {
+			return err
 		}
+		cfg = C(dest)
+		err = Copy(cfg, file)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%s -> %s\n", file, cfg)
 	}
 	return nil
 }
 
-// implement the `rm` command, handling one path at a time.  the `rm` command 
-// will remove files from the overlay not present in the actual working 
+// implement the `rm` command, handling one path at a time.  the `rm` command
+// will remove files from the overlay not present in the actual working
 // filesystem.
 func Rm(path string) error {
-	abs, err := filepath.Abs(path)
+	var err error
+	var abs, dest string
+
+	abs, err = filepath.Abs(path)
 	if err != nil {
 		return err
 	}
 
-	dst := C(abs)
-	err = os.RemoveAll(dst)
-	println(abs, dst)
+	dest, err = StripRoot(abs)
+	if err != nil {
+		return err
+	}
+
+	path = C(dest)
+	err = os.RemoveAll(path)
 	if err == nil {
 		fmt.Printf("Removed %s\n", abs)
 	} else {
@@ -95,15 +108,22 @@ func Rm(path string) error {
 // `show` command, handling one path at a time, shows what files exist under
 // the overlay's version of the path
 func Show(path string) error {
-	abs, err := filepath.Abs(path)
+	var err error
+	var abs, dest string
+
+	abs, err = filepath.Abs(path)
 	if err != nil {
 		return err
 	}
 
-	dst := C(abs)
-	cfgs, err := pathToFiles(dst)
+	dest, err = StripRoot(abs)
+	if err != nil {
+		return err
+	}
+	path = C(dest)
+	cfgs, err := pathToFiles(path)
 	if err != nil && !os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Could not show %s: %s\n", dst, err.Error())
+		fmt.Fprintf(os.Stderr, "Could not show %s: %s\n", path, err.Error())
 	} else if err != nil {
 		return nil
 	}
@@ -114,16 +134,24 @@ func Show(path string) error {
 	return nil
 }
 
-// `sync` command, copies file or directory from the overlay to the actual
+// `pull` command, copies file or directory from the overlay to the actual
 // filesystem.  will never delete files on filesystem, but always overwrites
 // existing ones.
-func Sync(path string) error {
-	abs, err := filepath.Abs(path)
+func Pull(path string) error {
+	var err error
+	var abs, dest, src string
+
+	abs, err = filepath.Abs(path)
 	if err != nil {
 		return err
 	}
 
-	src := C(abs)
+	dest, err = StripRoot(abs)
+	if err != nil {
+		return err
+	}
+
+	src = C(dest)
 	cfgs, err := pathToFiles(src)
 	if err != nil && os.IsNotExist(err) {
 		return nil
@@ -133,27 +161,76 @@ func Sync(path string) error {
 	}
 
 	for _, cfg := range cfgs {
-		file := X(cfg)
-		err = Copy(file, cfg)
-		if err == nil {
-			fmt.Printf("%s -> %s\n", cfg, file)
-		} else {
-			fmt.Fprintf(os.Stderr, "%s could not be synced: %s\n", file, err.Error())
+		if !QuickDiff(cfg, X(cfg)) {
+			file := X(cfg)
+			err = Copy(file, cfg)
+			if err == nil {
+				fmt.Printf("%s -> %s\n", cfg, file)
+			} else {
+				fmt.Fprintf(os.Stderr, "%s could not be pulled: %s\n", file, err.Error())
+			}
 		}
 	}
 	return nil
 }
 
-// `diff` command, diffs two files or two directories of files using the system
-// diff program with '-u'.  this will only diff files which are present in the
-// overlay, and the diff shows what would happen with a `sync`
-func Diff(path string) error {
-	var cmd *exec.Cmd
-	abs, err := filepath.Abs(path)
+// `push` command, copies a file or all files from the actual filesystem that
+// exist in the overlay to the overlay.
+func Push(path string) error {
+	var err error
+	var abs, dest, src string
+
+	abs, err = filepath.Abs(path)
 	if err != nil {
 		return err
 	}
-	diff := os.Getenv("CM_DIFF")
+
+	dest, err = StripRoot(abs)
+	if err != nil {
+		return err
+	}
+
+	src = C(dest)
+	cfgs, err := pathToFiles(src)
+	if err != nil && os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	for _, cfg := range cfgs {
+		file := X(cfg)
+		if !QuickDiff(cfg, file) {
+			err = Copy(cfg, file)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%s -> %s\n", cfg, file)
+		}
+	}
+	return nil
+
+}
+
+// `diff` command, diffs two files or two directories of files using the system
+// diff program with '-u'.  this will only diff files which are present in the
+// overlay, and the diff shows what would happen with a `pull`
+func Diff(path string) error {
+	var cmd *exec.Cmd
+	var err error
+	var abs, dest, src, diff string
+
+	abs, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	dest, err = StripRoot(abs)
+	if err != nil {
+		return err
+	}
+
+	diff = os.Getenv("CM_DIFF")
 	if len(diff) == 0 {
 		// user colordiff if available, else diff
 		diff, err = exec.LookPath("colordiff")
@@ -165,7 +242,7 @@ func Diff(path string) error {
 		}
 	}
 
-	src := C(abs)
+	src = C(dest)
 	cfgs, err := pathToFiles(src)
 
 	if err != nil && os.IsNotExist(err) {
@@ -176,9 +253,11 @@ func Diff(path string) error {
 	}
 
 	for _, cfg := range cfgs {
-		cmd = exec.Command(diff, "-u", cfg, X(cfg))
-		output, _ := cmd.Output()
-		fmt.Print(string(output))
+		if !QuickDiff(cfg, X(cfg)) {
+			cmd = exec.Command(diff, "-u", cfg, X(cfg))
+			output, _ := cmd.Output()
+			fmt.Print(string(output))
+		}
 	}
 
 	return nil
