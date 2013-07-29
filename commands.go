@@ -267,7 +267,7 @@ func Push(path string) error {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("%s -> %s\n", cfg, file)
+			fmt.Printf("%s -> %s\n", file, cfg)
 		}
 	}
 	return nil
