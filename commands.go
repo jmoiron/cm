@@ -1,13 +1,13 @@
 package main
 
 import (
-	//"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -55,7 +55,11 @@ func diffstat(output string) (*exec.Cmd, error) {
 		}
 	}
 
-	cmd = exec.Command(DIFFSTAT, "-C")
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command(DIFFSTAT)
+	} else {
+		cmd = exec.Command(DIFFSTAT, "-C")
+	}
 	if err != nil {
 		return nil, err
 	}
