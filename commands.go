@@ -38,9 +38,9 @@ func diff(src, dest string, forceNormal ...bool) (*exec.Cmd, error) {
 	}
 
 	if len(forceNormal) > 0 && forceNormal[0] {
-		return exec.Command(DIFF, "-u", src, dest), nil
+		return exec.Command(DIFF, "-Nu", src, dest), nil
 	}
-	return exec.Command(CM_DIFF, "-u", src, dest), nil
+	return exec.Command(CM_DIFF, "-Nu", src, dest), nil
 }
 
 // Runs diffstat on some diff output.  Returns diffstat command.
@@ -277,7 +277,7 @@ func Push(path string) error {
 // `diff` command, diffs two files or two directories of files using the system
 // diff program with '-u'.  this will only diff files which are present in the
 // overlay, and the diff shows what would happen with a `pull`
-func Diff(path string) error {
+func Diff(path string, reverse bool) error {
 	var cmd *exec.Cmd
 	var err error
 	var abs, dest, src string
@@ -304,7 +304,11 @@ func Diff(path string) error {
 
 	for _, cfg := range cfgs {
 		if !QuickDiff(cfg, X(cfg)) {
-			cmd, err = diff(cfg, X(cfg))
+			if reverse {
+				cmd, err = diff(X(cfg), cfg)
+			} else {
+				cmd, err = diff(cfg, X(cfg))
+			}
 			if err != nil {
 				return err
 			}
@@ -317,7 +321,7 @@ func Diff(path string) error {
 }
 
 // Show a diffstat style status for the path
-func Status(path string) error {
+func Status(path string, reverse bool) error {
 	var err error
 	var abs, dest, src string
 	var cmd *exec.Cmd
@@ -346,7 +350,11 @@ func Status(path string) error {
 	diffout = make([]byte, 0, 4096)
 	for _, cfg := range cfgs {
 		if !QuickDiff(cfg, X(cfg)) {
-			cmd, err = diff(cfg, X(cfg), true)
+			if reverse {
+				cmd, err = diff(X(cfg), cfg, true)
+			} else {
+				cmd, err = diff(cfg, X(cfg), true)
+			}
 			if err != nil {
 				return err
 			}

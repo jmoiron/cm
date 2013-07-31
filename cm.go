@@ -131,8 +131,17 @@ func main() {
 			}
 		}
 	case "status", "st", "show":
+		reverse := false
 		for _, arg := range args {
-			err := Status(arg)
+			if arg == "-r" {
+				reverse = true
+			}
+		}
+		for _, arg := range args {
+			if arg == "-r" {
+				continue
+			}
+			err := Status(arg, reverse)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error (Status): %s\n", err.Error())
 			}
@@ -159,8 +168,17 @@ func main() {
 			}
 		}
 	case "diff":
+		reverse := false
 		for _, arg := range args {
-			err := Diff(arg)
+			if arg == "-r" {
+				reverse = true
+			}
+		}
+		for _, arg := range args {
+			if arg == "-r" {
+				continue
+			}
+			err := Diff(arg, reverse)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error (Diff): %s\n", err.Error())
 			}
