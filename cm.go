@@ -61,6 +61,7 @@ Valid commands:
 
 type Opts struct {
 	Verbose bool
+	Reverse bool
 }
 
 var opts Opts
@@ -77,6 +78,7 @@ func init() {
 	optarg.Add("h", "help", "show help", false)
 	optarg.Add("", "version", "show version", false)
 	optarg.Add("v", "verbose", "show more output", false)
+	optarg.Add("r", "pull", "show diff/status output as if a pull were being done", false)
 	for opt := range optarg.Parse() {
 		switch opt.Name {
 		case "help":
@@ -88,6 +90,8 @@ func init() {
 			os.Exit(0)
 		case "verbose":
 			opts.Verbose = opt.Bool()
+		case "pull":
+			opts.Reverse = true
 		}
 	}
 }
@@ -131,17 +135,8 @@ func main() {
 			}
 		}
 	case "status", "st", "show":
-		reverse := false
 		for _, arg := range args {
-			if arg == "-r" {
-				reverse = true
-			}
-		}
-		for _, arg := range args {
-			if arg == "-r" {
-				continue
-			}
-			err := Status(arg, reverse)
+			err := Status(arg, opts.Reverse)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error (Status): %s\n", err.Error())
 			}
@@ -168,17 +163,8 @@ func main() {
 			}
 		}
 	case "diff":
-		reverse := false
 		for _, arg := range args {
-			if arg == "-r" {
-				reverse = true
-			}
-		}
-		for _, arg := range args {
-			if arg == "-r" {
-				continue
-			}
-			err := Diff(arg, reverse)
+			err := Diff(arg, opts.Reverse)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error (Diff): %s\n", err.Error())
 			}
