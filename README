@@ -3,6 +3,7 @@ Usage: cm [options]:
     --help, -h: show help
      --version: show version
  --verbose, -v: show more output
+    --pull, -r: show diff/status output as if a pull were being done
 
 cm is a (very) simple configuration manager designed to help keep and maintain
 system configs in an alternate overlay directory, which could then be separately

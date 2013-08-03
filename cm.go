@@ -27,7 +27,7 @@ by a command and then arguments related to that command:
 
 ENVIRONMENT VARIABLES:
 
-    CM_CONFIG_PATH  - root config path (default: /opt/cm)
+	CM_CONFIG_PATH  - root config path (default: /opt/cm)
 	CM_UNSAFE_SYNC  - if set, do not create .cmbak~ files on pull
 	CM_SYNC_SYMLINK - if set, create symlinks to cm overlay on pull 
 	CM_DIFF         - diff path, default tries 'colordiff', then 'diff' on PATH
